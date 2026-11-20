@@ -1,6 +1,6 @@
 # PSWS Live - Prestigious Seed of Wisdom School
 
-## 1. Connect your new Supabase project (2 minutes)
+## 1. Supabase is already connected (tejdmkcqgicabdjsyhpq). To change it later, edit SCHOOL_CONFIG in index.html.
 1. Supabase dashboard > **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
 2. Open `index.html` in any text editor. Near the top, find `SCHOOL_CONFIG` and paste both values:
    `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Save. (Only the anon/public key - never the service_role key.)

@@ -23,8 +23,8 @@ window.SCHOOL_CONFIG={
   SCHOOL_SHORT:'PSWS',
   SCHOOL_ADDRESS:'Mbock Junction, Ogoja, C.R.S',
   SCHOOL_PHONE:'08149510662',
-  SUPABASE_URL:'PASTE_YOUR_SUPABASE_PROJECT_URL_HERE',
-  SUPABASE_ANON_KEY:'PASTE_YOUR_SUPABASE_ANON_PUBLIC_KEY_HERE'
+  SUPABASE_URL:'https://tejdmkcqgicabdjsyhpq.supabase.co',
+  SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlamRta2NxZ2ljYWJkanN5aHBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5OTE4OTEsImV4cCI6MjA4NzU2Nzg5MX0.8RJvasW3sr3LBXp_CwgGcFu_qHtYsm0IkqtWGJmlx2A'
 };
 window.SCHOOL_CONFIGURED=!/PASTE_YOUR/.test(SCHOOL_CONFIG.SUPABASE_URL+SCHOOL_CONFIG.SUPABASE_ANON_KEY);
 if(!window.SCHOOL_CONFIGURED){window.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:99999;background:#0f2557;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:Arial,sans-serif';d.innerHTML='<div style="max-width:480px"><h2 style="margin-bottom:12px">Almost ready</h2><p style="line-height:1.6">This portal is not connected to a database yet.<br>Open <b>index.html</b>, find <b>SCHOOL_CONFIG</b> near the top, and paste your Supabase <b>Project URL</b> and <b>anon public key</b>.</p></div>';document.body.appendChild(d);});}
