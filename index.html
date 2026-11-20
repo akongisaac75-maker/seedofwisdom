@@ -4205,7 +4205,7 @@ async function submitGrades(){
 
     // 4) Bulk write.
     const {error}=await dbBulkWrite('assessments',toInsert,toUpdate);
-    if(error){const m=String(error.message||'');showToast(/row-level security|permission denied/i.test(m)?'Mid-term saving is blocked by Supabase security rules. Run fix_midterm_rls.sql in the Supabase SQL Editor, then try again.':'Error saving scores: '+m,'error');return;}
+    if(error){const m=String(error.message||'');showToast(/row-level security|permission denied/i.test(m)?'Mid-term saving is blocked by Supabase security rules. Run PSWS_FIX_ALL.sql in the Supabase SQL Editor, then try again.':'Error saving scores: '+m,'error');return;}
     const saved=toInsert.length+toUpdate.length;
     showToast(saved?('Saved '+saved+' assessment record(s) successfully!'+(unchanged?' ('+unchanged+' unchanged)':'')):'No changes to save');
     updateStats();
@@ -4907,7 +4907,7 @@ async function saveMidTermTeacherRecords(){
 
     // 4) Bulk write: a few requests in total instead of two per student.
     const {error}=await dbBulkWrite('midterm_assessments',toInsert,toUpdate);
-    if(error){const m=String(error.message||'');showToast(/row-level security|permission denied/i.test(m)?'Mid-term saving is blocked by Supabase security rules. Run fix_midterm_rls.sql in the Supabase SQL Editor, then try again.':'Error saving scores: '+m,'error');return;}
+    if(error){const m=String(error.message||'');showToast(/row-level security|permission denied/i.test(m)?'Mid-term saving is blocked by Supabase security rules. Run PSWS_FIX_ALL.sql in the Supabase SQL Editor, then try again.':'Error saving scores: '+m,'error');return;}
     const saved=toInsert.length+toUpdate.length;
     showToast(saved?(saved+' mid-term score record(s) saved successfully'+(unchanged?' ('+unchanged+' unchanged)':'')):'No changes to save');
     await loadMidTermTeacherStudents();
@@ -4932,7 +4932,7 @@ async function loadMidTermRemarksEditor(classId,termId,sessionId,classStudents,c
   const {data,error}=await selectByStudentIds('midterm_remarks','id,student_id,general_observation,recommendation',{term_id:termId,session_id:sessionId},classStudents.map(s=>s.id));
   if(seq!==undefined&&seq!==_midTermLoadSeq)return;
   if(error){
-    showToast('Observations table is not ready. Run midterm_remarks.sql in the Supabase SQL Editor. ('+error.message+')','error');
+    showToast('Observations table is not ready. Run PSWS_FIX_ALL.sql in the Supabase SQL Editor. ('+error.message+')','error');
   }
   const map={};(data||[]).forEach(r=>{if(!map[r.student_id])map[r.student_id]=r;});
   body.innerHTML=classStudents.map((s,i)=>{
@@ -4967,7 +4967,7 @@ async function saveMidTermRemarks(){
     const errs=(await runPool(chunkArray(rows,200).map(part=>async()=>(await supabaseClient.from('midterm_remarks').upsert(part,{onConflict:'student_id,term_id,session_id'})).error),3)).filter(Boolean);
     if(errs.length){
       const m=String(errs[0].message||'');
-      showToast(/row-level security|permission denied/i.test(m)?'Saving blocked by Supabase security rules. Run midterm_remarks.sql in the Supabase SQL Editor.':/does not exist|schema cache/i.test(m)?'The midterm_remarks table is missing. Run midterm_remarks.sql in the Supabase SQL Editor.':'Error saving: '+m,'error');
+      showToast(/row-level security|permission denied/i.test(m)?'Saving blocked by Supabase security rules. Run PSWS_FIX_ALL.sql in the Supabase SQL Editor.':/does not exist|schema cache/i.test(m)?'The midterm_remarks table is missing. Run PSWS_FIX_ALL.sql in the Supabase SQL Editor.':'Error saving: '+m,'error');
       return;
     }
     showToast(rows.length+' record(s) saved successfully');
@@ -6202,7 +6202,7 @@ async function submitTeacherCBT(){
   if(error){
     const msg=String(error.message||'');
     if(/row-level security|violates row-level security|permission denied/i.test(msg)){
-      showToast('CBT submission is blocked by Supabase security rules. Run fix_teacher_cbt_rls.sql in Supabase SQL Editor, then try again.','error');
+      showToast('CBT submission is blocked by Supabase security rules. Run PSWS_FIX_ALL.sql in Supabase SQL Editor, then try again.','error');
     }else{
       showToast('Could not submit CBT: '+msg,'error');
     }
@@ -6218,7 +6218,7 @@ async function submitTeacherCBT(){
     await supabaseClient.from('quizzes').delete().eq('id',q.id);
     const msg=String(qe.message||'');
     if(/row-level security|violates row-level security|permission denied/i.test(msg)){
-      showToast('Question records are blocked by Supabase security rules. Run fix_teacher_cbt_rls.sql in Supabase SQL Editor.','error');
+      showToast('Question records are blocked by Supabase security rules. Run PSWS_FIX_ALL.sql in Supabase SQL Editor.','error');
     }else{
       showToast('Questions could not be saved: '+msg,'error');
     }
@@ -6315,7 +6315,7 @@ async function publishTeacherCBT(quizId){ return approveTeacherCBT(quizId); }
 
 async function loadCBTQuizzes(){
   const {data,error}=await supabaseClient.from('quizzes').select('*,classes(name),subjects(name),weeks(name),quiz_questions(id)').order('created_at',{ascending:false});
-  if(error){const tb=document.getElementById('cbtQuizTable');if(tb)tb.innerHTML='<tr><td colspan="8" class="empty-state">Run add_cbt_schema.sql in Supabase first.</td></tr>';return;}
+  if(error){const tb=document.getElementById('cbtQuizTable');if(tb)tb.innerHTML='<tr><td colspan="8" class="empty-state">Run PSWS_FIX_ALL.sql in Supabase first.</td></tr>';return;}
   const rows=(data||[]).map(q=>({...q,question_count:q.quiz_questions?.length||0}));renderCBTQuizTable(rows);
 }
 async function createCBTQuiz(){
@@ -6346,7 +6346,7 @@ async function loadStudentQuizzes(){
   if(!currentUser||currentUser.role!=='student')return;
   const box=document.getElementById('studentQuizList'); if(!box)return; box.innerHTML='<div class="empty-state">Loading quizzes…</div>';
   const {data,error}=await supabaseClient.from('quizzes').select('*,classes(name),subjects(name),weeks(name),quiz_questions(id)').eq('class_id',currentUser.class_id).eq('status','published').order('created_at',{ascending:false});
-  if(error){box.innerHTML='<div class="empty-state">CBT database tables are not ready. Ask the administrator to run add_cbt_schema.sql.</div>';return;}
+  if(error){box.innerHTML='<div class="empty-state">CBT database tables are not ready. Ask the administrator to run PSWS_FIX_ALL.sql.</div>';return;}
   if(!data?.length){box.innerHTML='<div class="empty-state"><i class="fas fa-clipboard-check"></i><h4>No CBT quiz is available</h4><p>Your administrator will publish quizzes for your class.</p></div>';return;}
   const ids=data.map(x=>x.id);const {data:attempts}=await supabaseClient.from('quiz_attempts').select('quiz_id,status,score,percentage').eq('student_id',currentUser.id).in('quiz_id',ids);const amap={};(attempts||[]).forEach(a=>amap[a.quiz_id]=a);
   box.innerHTML=data.map(q=>{const a=amap[q.id];const done=a?.status==='submitted'||a?.status==='expired';return '<div style="border:1px solid #eee;border-radius:14px;padding:18px;margin-bottom:12px;display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap"><div><h4 style="color:var(--primary);margin-bottom:5px">'+cbtEsc(q.title)+'</h4><p style="color:#777;font-size:.85rem">'+cbtEsc(q.subjects?.name||'Subject')+' • '+cbtEsc(window.cbtTypeLabel(q))+' • '+q.quiz_questions.length+' questions • '+q.duration_minutes+' minutes</p></div><div>'+(done?'<span class="cbt-badge">Completed: '+Number(a.score||0).toFixed(1)+'/10</span> <button type="button" class="btn btn-sm btn-secondary" onclick="cbtOpenReview({quizId:\''+q.id+'\',studentId:\''+currentUser.id+'\',who:\'student\'})"><i class="fas fa-search"></i> Review corrections</button>':'<button class="btn btn-primary" onclick="startStudentQuiz(\''+q.id+'\')"><i class="fas fa-play"></i> Start Quiz</button>')+'</div></div>';}).join('');
@@ -6894,7 +6894,7 @@ async function sendExamInboxReply(){
 
 /* =====================================================================
    DAILY STORY MODULE  ("Today at School" / "My Child's Daily Story")
-   Needs: add_daily_story_schema.sql
+   Needs: PSWS_FIX_ALL.sql
    ===================================================================== */
 const DS_BUCKET='daily-story-media';
 const dsE=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -6914,8 +6914,8 @@ const dsToday=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMon
 const dsFmt=d=>new Date(d+'T00:00:00').toLocaleDateString([], {weekday:'short',day:'numeric',month:'short'});
 const dsEmoji=(f,v)=>(DS_OPT[f].find(o=>o[0]===v)||['','•'])[1];
 function dsErr(e){const m=String(e?.message||e||'');
-  if(/does not exist|schema cache|42P01|PGRST20[45]/i.test(m+' '+(e?.code||'')))return 'Daily Story tables are not set up yet. Ask the administrator to run add_daily_story_schema.sql in the Supabase SQL Editor.';
-  if(/bucket not found/i.test(m))return 'Storage bucket "daily-story-media" is missing. Run add_daily_story_schema.sql in Supabase.';
+  if(/does not exist|schema cache|42P01|PGRST20[45]/i.test(m+' '+(e?.code||'')))return 'Daily Story tables are not set up yet. Ask the administrator to run PSWS_FIX_ALL.sql in the Supabase SQL Editor.';
+  if(/bucket not found/i.test(m))return 'Storage bucket "daily-story-media" is missing. Run PSWS_FIX_ALL.sql in Supabase.';
   return m;}
 const dsEmpty=(ic,h,p)=>'<div class="empty-state"><i class="fas '+ic+'"></i><h4>'+h+'</h4>'+(p?'<p>'+p+'</p>':'')+'</div>';
 
@@ -7051,7 +7051,7 @@ async function dsSave(publish){
     dsQ('dsStatus').textContent=c.published?'✔ Published to parents':'Draft – parents cannot see this yet';
     dsQ('dsStatus').className='cbt-badge'+(c.published?' ds-pub':'');
     showToast(publish?'Published! Parents can now see today\'s story.':'Saved.');
-  }catch(e){showToast(/row-level security|permission denied/i.test(String(e.message))?'Saving blocked by Supabase security rules. Run add_daily_story_schema.sql.':dsErr(e),'error');}
+  }catch(e){showToast(/row-level security|permission denied/i.test(String(e.message))?'Saving blocked by Supabase security rules. Run PSWS_FIX_ALL.sql.':dsErr(e),'error');}
 }
 
 /* ---------- parent ---------- */
@@ -7100,7 +7100,7 @@ async function dsSendFeedback(){
 
 /* =====================================================================
    ASSIGNMENTS MODULE  (file-upload + CBT assignments, grading, scores)
-   Needs: add_assignments_schema.sql
+   Needs: PSWS_FIX_ALL.sql
    ===================================================================== */
 const ASG_BUCKET='assignment-files';
 const ASG_MAX_MB=25, ASG_MAX_FILES=10;
@@ -7117,8 +7117,8 @@ const asgVal=id=>(document.getElementById(id)?.value||'').trim();
 const asgFmtDate=d=>d?new Date(d).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'—';
 function asgErrMsg(e){
   const m=String(e?.message||e||'Unknown error');
-  if(/does not exist|schema cache|42P01|PGRST20[45]/i.test(m+' '+(e?.code||'')))return 'Assignment tables are not set up yet. Ask the administrator to run add_assignments_schema.sql in Supabase.';
-  if(/bucket not found/i.test(m))return 'Storage bucket "assignment-files" is missing. Run add_assignments_schema.sql in Supabase.';
+  if(/does not exist|schema cache|42P01|PGRST20[45]/i.test(m+' '+(e?.code||'')))return 'Assignment tables are not set up yet. Ask the administrator to run PSWS_FIX_ALL.sql in Supabase.';
+  if(/bucket not found/i.test(m))return 'Storage bucket "assignment-files" is missing. Run PSWS_FIX_ALL.sql in Supabase.';
   return m;
 }
 
@@ -7684,7 +7684,7 @@ const activeSess=()=>sessions.find(s=>s.is_active)?.id||'';
 const opts=(list,ph,lab)=>'<option value="">'+ph+'</option>'+list.map(x=>'<option value="'+x.id+'">'+esc(lab(x))+'</option>').join('');
 const termLab=t=>t.name;
 const isAdmin=()=>currentUser?.role==='admin';
-function tsErr(e){const m=String(e?.message||e||'');if(/test1_manual/i.test(m)&&/column|schema cache|could not find/i.test(m))return 'Termly scores were not saved: Supabase is missing term_scores.test1_manual. Run add_test1_manual.sql in Supabase SQL Editor, then refresh this page. Details: '+m;if(/term_scores|result_publications|quiz_type|relation|schema cache/i.test(m))return 'Termly database setup is incomplete. Run termly_report_card_schema.sql in Supabase SQL Editor, then refresh this page. Details: '+m;return m||'Unknown error while saving termly scores.';}
+function tsErr(e){const m=String(e?.message||e||'');if(/test1_manual/i.test(m)&&/column|schema cache|could not find/i.test(m))return 'Termly scores were not saved: Supabase is missing term_scores.test1_manual. Run PSWS_FIX_ALL.sql in Supabase SQL Editor, then refresh this page. Details: '+m;if(/term_scores|result_publications|quiz_type|relation|schema cache/i.test(m))return 'Termly database setup is incomplete. Run PSWS_FIX_ALL.sql in Supabase SQL Editor, then refresh this page. Details: '+m;return m||'Unknown error while saving termly scores.';}
 
 async function ensureRef(){if(!terms.length)await loadTerms();if(!sessions.length)await loadSessions();}
 function fillCommon(p,withClass=true){
@@ -9773,9 +9773,9 @@ async function loadNurseryObservations(){
     q=q.in('class_id',ids); nq=nq.in('class_id',ids);
   }
   const[{data,error},nres]=await Promise.all([q,nq]);
-  if(error){showToast('Error loading nursery observations: '+error.message+' (run nursery_setup.sql in Supabase if the tables are missing)','error');return;}
+  if(error){showToast('Error loading nursery observations: '+error.message+' (run PSWS_FIX_ALL.sql in Supabase if the tables are missing)','error');return;}
   nurseryNotes=nres.error?[]:(nres.data||[]);
-  if(nres.error)console.warn('nursery_week_notes not available - run nursery_setup.sql',nres.error.message);
+  if(nres.error)console.warn('nursery_week_notes not available - run PSWS_FIX_ALL.sql',nres.error.message);
   let list=data||[];
   // Preserve historical observations even if their subject level was not tagged 'nursery'.
   // Database class access is already scoped above; do not silently discard saved records.
@@ -9791,7 +9791,7 @@ function nCanManageSubjects(){return !!currentUser&&(isAdmin()||myNurseryClasses
 function renderNurserySubjectsAdmin(){
   const tb=document.getElementById('nurserySubjectsTable'); if(!tb)return;
   const note=document.getElementById('nurserySubjectsNote');
-  if(note)note.innerHTML=nLevelMissing?'<div style="background:#fff4dd;border-left:4px solid #b9770e;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:0.85rem;">The <strong>level</strong> column is missing from the subjects table. Run <strong>nursery_setup.sql</strong> in Supabase &rarr; SQL Editor, then reload this page.</div>':'';
+  if(note)note.innerHTML=nLevelMissing?'<div style="background:#fff4dd;border-left:4px solid #b9770e;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:0.85rem;">The <strong>level</strong> column is missing from the subjects table. Run <strong>PSWS_FIX_ALL.sql</strong> in Supabase &rarr; SQL Editor, then reload this page.</div>':'';
   tb.innerHTML=nSubjects.map((s,i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+esc(s.name)+'</strong></td><td><button class="btn btn-danger btn-sm" onclick="nurseryDeleteSubject(\''+s.id+'\')"><i class="fas fa-trash"></i></button></td></tr>').join('')||'<tr><td colspan="3" class="empty-state">No nursery subjects yet</td></tr>';
 }
 function nurseryOpenSubject(){
@@ -9811,7 +9811,7 @@ async function nurseryAddSubject(){
   if(!name){showToast('Enter subject name','error');return;}
   const r=await nInsertSubject(name);
   if(r.skipped){showToast('That nursery subject already exists','error');return;}
-  if(r.error){showToast('Error: '+r.error.message+(/level/i.test(r.error.message)?' (run nursery_setup.sql first)':''),'error');return;}
+  if(r.error){showToast('Error: '+r.error.message+(/level/i.test(r.error.message)?' (run PSWS_FIX_ALL.sql first)':''),'error');return;}
   showToast('Nursery subject added'); nurseryCloseSubject();
   if(typeof window.loadSubjects==='function')await window.loadSubjects();
 }
@@ -9819,7 +9819,7 @@ async function nurseryAddStandardSubjects(){
   if(!isAdmin())return;
   let added=0,fail=null;
   for(const n of NURSERY_STANDARD){const r=await nInsertSubject(n); if(r.error){fail=r.error;break;} if(!r.skipped)added++;}
-  if(fail)showToast('Error: '+fail.message+(/level/i.test(fail.message)?' (run nursery_setup.sql first)':''),'error');
+  if(fail)showToast('Error: '+fail.message+(/level/i.test(fail.message)?' (run PSWS_FIX_ALL.sql first)':''),'error');
   else showToast(added?added+' standard subject(s) added':'All standard subjects already exist');
   if(typeof window.loadSubjects==='function')await window.loadSubjects();
 }
@@ -10351,7 +10351,7 @@ function renderNurserySheetForm(){
   if(host.dataset.sig===sig&&host.children.length)return;
   const keep=readNurseryRows();
   host.dataset.sig=sig;
-  host.innerHTML=subs.length?subs.map(subjectBlockHtml).join(''):'<div class="empty-state" style="padding:20px;text-align:left;"><p><strong>No nursery subjects are available to tick.</strong></p><p>'+(nLevelMissing?'The subjects table is missing the required level column. Ask the administrator to run nursery_setup.sql in Supabase, then reload the page.':'Ask the administrator to open Nursery Subjects and add the standard nursery subjects, or add the subjects used by your class.')+'</p></div>';
+  host.innerHTML=subs.length?subs.map(subjectBlockHtml).join(''):'<div class="empty-state" style="padding:20px;text-align:left;"><p><strong>No nursery subjects are available to tick.</strong></p><p>'+(nLevelMissing?'The subjects table is missing the required level column. Ask the administrator to run PSWS_FIX_ALL.sql in Supabase, then reload the page.':'Ask the administrator to open Nursery Subjects and add the standard nursery subjects, or add the subjects used by your class.')+'</p></div>';
   writeNurseryRows(keep);
 }
 function clearNurserySheet(){
@@ -10412,7 +10412,7 @@ async function saveNurserySheet(){
     await loadNurseryObservations(); loadNurserySheet();
   }catch(err){
     console.error(err);
-    showToast('Could not save sheet: '+((err&&err.message)||err)+' (if a table or column is missing, run nursery_setup.sql in Supabase)','error');
+    showToast('Could not save sheet: '+((err&&err.message)||err)+' (if a table or column is missing, run PSWS_FIX_ALL.sql in Supabase)','error');
   }
 }
 
@@ -10810,8 +10810,8 @@ async function emtLoad(){
   }
   const{data,error}=await q;
   if(error){
-    emtReports=[];console.warn('early_midterm_reports not available - run nursery_setup.sql',error.message);
-    emtEl('emtTable').innerHTML='<tr><td colspan="7" class="empty-state">Could not load reports: '+esc(error.message||'')+' &mdash; if the table is missing, run nursery_setup.sql in Supabase, then reload</td></tr>';
+    emtReports=[];console.warn('early_midterm_reports not available - run PSWS_FIX_ALL.sql',error.message);
+    emtEl('emtTable').innerHTML='<tr><td colspan="7" class="empty-state">Could not load reports: '+esc(error.message||'')+' &mdash; if the table is missing, run PSWS_FIX_ALL.sql in Supabase, then reload</td></tr>';
     return;
   }
   emtReports=data||[];
@@ -10859,7 +10859,7 @@ async function emtSave(){
   }catch(err){
     console.error(err);
     const m=(err&&err.message)||String(err);
-    showToast(/could not find the table|does not exist/i.test(m)?'Table early_midterm_reports is missing in Supabase. Run nursery_setup.sql, then try again. ('+m+')':'Could not save report: '+m,'error');
+    showToast(/could not find the table|does not exist/i.test(m)?'Table early_midterm_reports is missing in Supabase. Run PSWS_FIX_ALL.sql, then try again. ('+m+')':'Could not save report: '+m,'error');
   }
 }
 
@@ -12521,7 +12521,7 @@ window.submitGrades=async function(){
     const {error}=await supabaseClient.from('weekly_topics').upsert([{class_id:String(classId),week_id:String(weekId),subject_id:String(subjectId),topic:topic,teacher_id:currentUser?String(currentUser.id):null,updated_at:new Date().toISOString()}],{onConflict:'class_id,week_id,subject_id'});
     if(error){
       console.warn('weekly_topics save:',error.message);
-      showToast(/relation|does not exist|schema cache/i.test(error.message)?'Topic not saved: run weekly_topics.sql in the Supabase SQL Editor first. Scores will still be saved.':'Topic not saved: '+error.message,'error');
+      showToast(/relation|does not exist|schema cache/i.test(error.message)?'Topic not saved: run PSWS_FIX_ALL.sql in the Supabase SQL Editor first. Scores will still be saved.':'Topic not saved: '+error.message,'error');
     }else{topicCache.delete(classId+'|'+weekId);}
   }
   return _save.apply(this,arguments);

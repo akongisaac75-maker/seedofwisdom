@@ -14,6 +14,14 @@ The original zip only contained the *add-on* SQL files, not the base tables, so 
    (each is safe to re-run).
 3. Create the first administrator row in the `teachers` table (role = `admin`) so you can log in.
 
+## 2b. ONE-SHOT FIX (run after step 2, and any time you see a "table not found" or "row-level security" error)
+Supabase > SQL Editor > paste all of **PSWS_FIX_ALL.sql** > Run. Safe to run repeatedly; never deletes data. It:
+- creates every table the app needs (Nursery Observations, Assignments, Daily Story, Exam Inbox, Termly Scores, ...)
+- adds missing columns, unique keys and table relationships
+- adds the access policies that stop "new row violates row-level security policy" (Sessions, Terms, Weeks, ...)
+- creates the 4 storage buckets: report-cards, assignment-files, teacher-exams, daily-story-media
+Then refresh the app with Ctrl+Shift+R.
+
 ## 3. Host it
 Upload ALL of these together to your host (Netlify etc.): `index.html`, `sw.js`, `manifest.json`, the three `icon-*.png` files.
 
