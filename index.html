@@ -2594,6 +2594,18 @@ Only the class teacher assigned to this class can save the comment.
 <div class="table-container"><table><thead><tr><th>Session Name</th><th>Status</th><th>Actions</th></tr></thead><tbody id="sessionsTable"></tbody></table></div>
 </div>
 </div>
+<div class="card" id="termInfoCard" style="margin-top:25px;">
+<div class="card-header"><h3><i class="fas fa-info-circle"></i> Term Details (printed on Termly Report Cards)</h3></div>
+<div class="ts-note">Fill in these details for a term and they will appear in a &ldquo;Next Term Information&rdquo; box on every termly report card for that term. Leave a box empty and it will not print.</div>
+<div class="form-grid">
+<div class="form-group"><label>Term</label><select id="tiTerm" onchange="tiLoad()" onfocus="tiFillTerms()"></select></div>
+<div class="form-group"><label>Closing date for this term</label><input type="date" id="tiClose"></div>
+<div class="form-group"><label>Next term begins (resumption date)</label><input type="date" id="tiNext"></div>
+<div class="form-group"><label>Next term fees total (&#8358;)</label><input type="text" id="tiFees" placeholder="e.g. 150,000"></div>
+</div>
+<div class="form-group"><label>Fees breakdown (optional) &ndash; one item per line, e.g. Tuition: 100,000</label><textarea id="tiBreak" rows="4" placeholder="Tuition: 100,000&#10;Uniform: 25,000&#10;Books: 25,000"></textarea></div>
+<div class="form-group"><label>Other notes (e.g. PTA meeting date)</label><textarea id="tiNotes" rows="3" placeholder="PTA meeting: Saturday 12 December 2026, 10am"></textarea></div>
+<div class="ts-btnrow"><button class="btn btn-primary" onclick="tiSave()"><i class="fas fa-save"></i> Save Term Details</button> <button class="btn btn-secondary" onclick="tiClear()"><i class="fas fa-eraser"></i> Clear</button></div>
 </div>
 
 <div id="promoteStudents" class="section hidden">
@@ -5790,6 +5802,7 @@ const{data,error}=await supabaseClient.from('terms').select('*,sessions(name)').
 if(error){showToast('Error loading terms: '+error.message,'error');return;}
 terms=data||[];
 renderTermsTable();
+try{window.tiFillTerms&&window.tiFillTerms();}catch(_){}
 const el=document.getElementById('termSessionInput');
 if(el)el.innerHTML='<option value="">-- Select Session --</option>'+sessions.map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
 }
@@ -7844,7 +7857,54 @@ function subjectOkForClass(classId,subjectId){
   return true;
 }
 window.ngisSubjectOkForClass=subjectOkForClass;
+/* ===== Term details (closing date, next term begins, next term fees, notes) shown on termly report cards ===== */
+const TERM_INFO={};
+async function loadTermInfo(termId){
+  if(!termId)return null;
+  try{const {data,error}=await supabaseClient.from('term_info').select('*').eq('term_id',String(termId)).maybeSingle();
+    TERM_INFO[termId]=error?null:(data||null);}catch(e){TERM_INFO[termId]=null;}
+  return TERM_INFO[termId];
+}
+function tiFmtDate(d){if(!d)return '';const x=new Date(d+'T00:00:00');return isNaN(x)?String(d):x.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+function tiBox(termId){
+  const i=TERM_INFO[termId];if(!i)return '';
+  const rows=[];
+  if(i.closing_date)rows.push('<tr><td style="padding:3px 6px;width:34%"><b>This term closes</b></td><td style="padding:3px 6px">'+esc(tiFmtDate(i.closing_date))+'</td></tr>');
+  if(i.next_term_begins)rows.push('<tr><td style="padding:3px 6px"><b>Next term begins</b></td><td style="padding:3px 6px">'+esc(tiFmtDate(i.next_term_begins))+'</td></tr>');
+  const br=String(i.fees_breakdown||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  if(i.next_term_fees||br.length){
+    let f='';
+    if(i.next_term_fees)f+='<b>&#8358;'+esc(String(i.next_term_fees).replace(/^[\u20A6N\s]+/i,''))+'</b>';
+    if(br.length)f+=(f?'<br>':'')+br.map(esc).join('<br>');
+    rows.push('<tr><td style="padding:3px 6px;vertical-align:top"><b>Next term fees</b></td><td style="padding:3px 6px">'+f+'</td></tr>');
+  }
+  const nt=String(i.notes||'').trim();
+  if(nt)rows.push('<tr><td style="padding:3px 6px;vertical-align:top"><b>Notes</b></td><td style="padding:3px 6px">'+esc(nt).replace(/\n/g,'<br>')+'</td></tr>');
+  if(!rows.length)return '';
+  return '<div style="margin-top:12px;padding:8px 10px;border:1px solid #0f2557;border-radius:4px;font-size:12px"><div style="font-weight:bold;color:#0f2557;margin-bottom:3px">NEXT TERM INFORMATION</div><table style="width:100%;border-collapse:collapse">'+rows.join('')+'</table></div>';
+}
+window.tiFillTerms=function(){const el=document.getElementById('tiTerm');if(!el)return;const cur=el.value;
+  el.innerHTML='<option value="">-- Choose Term --</option>'+(terms||[]).map(t=>'<option value="'+t.id+'">'+esc(t.name)+(t.sessions&&t.sessions.name?' ('+esc(t.sessions.name)+')':'')+'</option>').join('');if(cur)el.value=cur;};
+setTimeout(()=>{try{window.tiFillTerms();}catch(_){}},1500);
+window.tiLoad=async function(){
+  const id=document.getElementById('tiTerm').value;
+  ['tiClose','tiNext','tiFees','tiBreak','tiNotes'].forEach(k=>document.getElementById(k).value='');
+  if(!id)return;
+  const i=await loadTermInfo(id);if(!i)return;
+  document.getElementById('tiClose').value=i.closing_date||'';document.getElementById('tiNext').value=i.next_term_begins||'';
+  document.getElementById('tiFees').value=i.next_term_fees||'';document.getElementById('tiBreak').value=i.fees_breakdown||'';document.getElementById('tiNotes').value=i.notes||'';
+};
+window.tiSave=async function(){
+  const id=document.getElementById('tiTerm').value;if(!id){showToast('Choose a term first','error');return;}
+  const g=k=>document.getElementById(k).value.trim();
+  const row={term_id:String(id),closing_date:g('tiClose')||null,next_term_begins:g('tiNext')||null,next_term_fees:g('tiFees')||null,fees_breakdown:g('tiBreak')||null,notes:g('tiNotes')||null,updated_at:new Date().toISOString()};
+  const {error}=await supabaseClient.from('term_info').upsert(row,{onConflict:'term_id'});
+  if(error){showToast(/term_info|relation|schema cache/i.test(error.message)?'Term details table missing. Run term_info_setup.sql in Supabase SQL Editor, then refresh. ('+error.message+')':error.message,'error');return;}
+  delete TERM_INFO[id];await loadTermInfo(id);showToast('Term details saved');
+};
+window.tiClear=function(){['tiClose','tiNext','tiFees','tiBreak','tiNotes'].forEach(k=>document.getElementById(k).value='');};
 async function classData(classId,termId,sessionId){
+  try{await loadTermInfo(termId);}catch(_){}
   let all=[],from=0;
   for(;;){
     const {data,error}=await supabaseClient.from('term_scores').select('*').eq('class_id',classId).eq('term_id',termId).eq('session_id',sessionId).order('id').range(from,from+999);
@@ -7908,6 +7968,7 @@ function buildReport(student,all,termId,sessionId,classId){
   '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="'+th+';text-align:left">Subject</th><th style="'+th+'">Test 1<br>/'+SC.t1+'</th><th style="'+th+'">Test 2<br>/'+SC.t2+'</th>'+(SC.senior?'':'<th style="'+th+'">Project<br>/10</th>')+'<th style="'+th+'">'+(SC.senior?'Assign./Project':'Assign.')+'<br>/10</th><th style="'+th+'">Exam<br>/'+SC.ex+'</th><th style="'+th+'">Total<br>/100</th><th style="'+th+'">Grade</th><th style="'+th+'">Class<br>Avg</th><th style="'+th+'">Remark</th></tr></thead><tbody>'+(body||'<tr><td colspan="'+(SC.senior?9:10)+'" style="padding:16px;text-align:center;color:#888">No scores recorded.</td></tr>')+'</tbody></table>'+
   '<div style="margin-top:12px;padding:10px;background:#f8f9fd;border-left:4px solid #0f2557;font-size:12px"><b>Remark:</b> '+rem+'</div>'+
   '<div style="margin-top:10px;font-size:10px;color:#555">Grading: A+ 95-100 | A 85-94 | B+ 80-84 | B 70-79 | C 60-69 | D 50-59 | E 45-49 | F below 45</div>'+
+  tiBox(termId)+
   '<div style="display:flex;justify-content:space-between;margin-top:30px;font-size:11px"><div style="border-top:1px solid #555;width:40%;text-align:center;padding-top:3px">Class Teacher</div><div style="border-top:1px solid #555;width:40%;text-align:center;padding-top:3px">Principal</div></div></div>';
 }
 async function toCanvas(html){
